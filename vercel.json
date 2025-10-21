@@ -1,5 +1,6 @@
 {
-  "buildCommand": "cd packages/nextjs && yarn build:vercel",
+  "buildCommand": "cd packages/nextjs && yarn install --ignore-scripts && yarn build",
   "outputDirectory": "packages/nextjs/.next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "nodeVersion": "18.x"
 }
