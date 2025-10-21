@@ -1,18 +1,24 @@
 {
-  "installCommand": "yarn install --ignore-optional",
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    }
+  ],
+  "build": {
+    "env": {
+      "NODE_VERSION": "18.x"
+    }
+  },
+  "installCommand": "yarn install --ignore-optional --frozen-lockfile",
   "buildCommand": "yarn build:vercel",
   "devCommand": "yarn dev",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["cdg1"],
-  "nodeVersion": "18.x",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": ".next"
-      }
-    }
-  ]
+  "nodeVersion": "18.x"
 }
