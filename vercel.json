@@ -1,6 +1,19 @@
 {
-  "buildCommand": "cd packages/nextjs && yarn install --ignore-scripts && yarn build",
-  "outputDirectory": "packages/nextjs/.next",
-  "framework": "nextjs",
+  "version": 2,
+  "builds": [
+    {
+      "src": "packages/nextjs/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    }
+  ],
+  "build": {
+    "env": {
+      "NPM_CONFIG_IGNORE_SCRIPTS": "1",
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  },
   "nodeVersion": "18.x"
 }
