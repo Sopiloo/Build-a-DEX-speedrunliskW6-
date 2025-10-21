@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import { useScaffoldContractRead, useScaffoldContractWrite, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
@@ -18,7 +18,7 @@ export const SwapPanel = () => {
 
   // Read deployed DEX address
   const { data: dexInfo } = useDeployedContractInfo("SimpleDEX");
-  const dexAddress = dexInfo?.address as `0x${string}` | undefined;
+  const dexAddress = dexInfo?.address;
 
   // Get token addresses from DEX contract
   const { data: tokenAAddress } = useScaffoldContractRead({
@@ -41,13 +41,13 @@ export const SwapPanel = () => {
   const { data: balanceA } = useScaffoldContractRead({
     contractName: "MyToken",
     functionName: "balanceOf",
-    args: [connectedAddress],
+    args: [connectedAddress as `0x${string}`],
   });
 
   const { data: balanceB } = useScaffoldContractRead({
     contractName: "SimpleUSDC",
     functionName: "balanceOf",
-    args: [connectedAddress],
+    args: [connectedAddress as `0x${string}`],
   });
 
   // Get token symbols
@@ -65,13 +65,13 @@ export const SwapPanel = () => {
   const { data: allowanceA, refetch: refetchAllowanceA } = useScaffoldContractRead({
     contractName: "MyToken",
     functionName: "allowance",
-    args: [connectedAddress, dexAddress],
+    args: [connectedAddress as `0x${string}`, dexAddress as `0x${string}`],
   });
 
   const { data: allowanceB, refetch: refetchAllowanceB } = useScaffoldContractRead({
     contractName: "SimpleUSDC",
     functionName: "allowance",
-    args: [connectedAddress, dexAddress],
+    args: [connectedAddress as `0x${string}`, dexAddress as `0x${string}`],
   });
 
   // Update approval status
@@ -88,7 +88,7 @@ export const SwapPanel = () => {
     contractName: "SimpleDEX",
     functionName: "getSwapAmount",
     args: [
-      isTokenAInput ? tokenAAddress : tokenBAddress,
+      (isTokenAInput ? tokenAAddress : tokenBAddress) as `0x${string}`,
       inputAmount ? parseUnits(inputAmount, isTokenAInput ? 18 : 6) : 0n,
     ],
   });
@@ -104,6 +104,13 @@ export const SwapPanel = () => {
   }, [swapQuote, isTokenAInput]);
 
   // Compute price impact when we have input/output and reserves
+  const minOutputAmount = useMemo(() => {
+    if (!swapQuote) return undefined;
+    const bps = Math.round(slippagePct * 100); // percent -> basis points
+    const multiplierBps = 10000 - bps;
+    return (swapQuote * BigInt(multiplierBps)) / 10000n;
+  }, [swapQuote, slippagePct]);
+
   useEffect(() => {
     try {
       const reserveA = reserves?.[0] as bigint | undefined;
@@ -135,30 +142,30 @@ export const SwapPanel = () => {
   const { writeAsync: approveTokenA } = useScaffoldContractWrite({
     contractName: "MyToken",
     functionName: "approve",
-    args: [dexAddress, parseUnits("1000000", 18)], // Approve large amount
+    args: [dexAddress as `0x${string}`, parseUnits("1000000", 18)],
   });
 
   const { writeAsync: approveTokenB } = useScaffoldContractWrite({
     contractName: "SimpleUSDC",
     functionName: "approve",
-    args: [dexAddress, parseUnits("1000000", 6)], // Approve large amount
+    args: [dexAddress as `0x${string}`, parseUnits("1000000", 6)],
   });
 
   // Swap function
-  const { writeAsync: executeSwap } = useScaffoldContractWrite({
+  const swapArgs = useMemo(() => {
+    const tokenIn = (isTokenAInput ? tokenAAddress : tokenBAddress) as `0x${string}`;
+    const amountIn = inputAmount ? parseUnits(inputAmount, isTokenAInput ? 18 : 6) : 0n;
+    const amountOutMin = swapQuote 
+      ? (swapQuote * BigInt(10000 - Math.round(slippagePct * 100))) / 10000n 
+      : 0n;
+    
+    return [tokenIn, amountIn, amountOutMin] as const;
+  }, [isTokenAInput, tokenAAddress, tokenBAddress, inputAmount, swapQuote, slippagePct]);
+
+  const { writeAsync: swapExactTokensForTokens } = useScaffoldContractWrite({
     contractName: "SimpleDEX",
     functionName: "swap",
-    args: [
-      isTokenAInput ? tokenAAddress : tokenBAddress,
-      inputAmount ? parseUnits(inputAmount, isTokenAInput ? 18 : 6) : 0n,
-      // minAmountOut based on slippagePct
-      (() => {
-        if (!swapQuote) return 0n;
-        const bps = Math.round(slippagePct * 100); // percent -> basis points
-        const multiplierBps = 10000 - bps;
-        return (swapQuote * BigInt(multiplierBps)) / 10000n;
-      })(),
-    ],
+    args: swapArgs as readonly [`0x${string}`, bigint, bigint],
   });
 
   const handleApprove = async () => {
@@ -182,6 +189,21 @@ export const SwapPanel = () => {
     }
   };
 
+  const executeSwap = async () => {
+    if (!inputAmount || parseFloat(inputAmount) <= 0) {
+      throw new Error("Invalid input amount");
+    }
+
+    if (!swapExactTokensForTokens) {
+      throw new Error("Swap function not available");
+    }
+
+    const tx = await swapExactTokensForTokens();
+    if (tx && typeof tx === 'object' && 'wait' in tx) {
+      await (tx as { wait: () => Promise<any> }).wait();
+    }
+  };
+
   const handleSwap = async () => {
     if (!inputAmount || parseFloat(inputAmount) <= 0) {
       notification.error("Enter a valid amount");
@@ -192,10 +214,14 @@ export const SwapPanel = () => {
       await executeSwap();
       notification.success("Swap successful!");
       setInputAmount("");
-      setOutputAmount("");
-    } catch (error) {
+      setTimeout(() => {
+        refetchAllowanceA?.();
+        refetchAllowanceB?.();
+      }, 2000);
+    } catch (error: unknown) {
       console.error("Swap failed:", error);
-      notification.error("Swap failed");
+      const errorMessage = error instanceof Error ? error.message : "Swap failed";
+      notification.error(errorMessage);
     }
   };
 
@@ -288,13 +314,13 @@ export const SwapPanel = () => {
             value={slippagePct}
             onChange={e => setSlippagePct(Math.max(0, Number(e.target.value)))}
           />
-          {swapQuote && (
+          {swapQuote ? (
             <div className="text-xs opacity-70">
               Min received: {(
                 Number(formatUnits(swapQuote, isTokenAInput ? 6 : 18)) * (1 - slippagePct / 100)
-              ).toFixed(6)} {isTokenAInput ? symbolB : symbolA}
+              ).toFixed(6)} {isTokenAInput ? (symbolB || '') : (symbolA || '')}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Price Impact Warning */}
@@ -312,11 +338,11 @@ export const SwapPanel = () => {
             </button>
           ) : (
             <button
-              className="btn btn-primary btn-block"
+              className="btn btn-primary w-full"
               onClick={handleSwap}
-              disabled={!inputAmount || parseFloat(inputAmount) <= 0}
+              disabled={!inputAmount || parseFloat(inputAmount) <= 0 || !isApprovedA || !isApprovedB}
             >
-              Swap
+              {(!isApprovedA || !isApprovedB) ? "Approve Tokens First" : "Swap"}
             </button>
           )}
         </div>
@@ -324,3 +350,5 @@ export const SwapPanel = () => {
     </div>
   );
 };
+
+export default SwapPanel;

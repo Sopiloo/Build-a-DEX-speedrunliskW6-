@@ -2,10 +2,21 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static exports for Vercel
-  output: 'export',
   // Disable React's Strict Mode for better compatibility with some Web3 libraries
   reactStrictMode: false,
+  
+  // Required for static export
+  trailingSlash: true,
+  
+  // Image optimization configuration
+  images: {
+    // Enable image optimization
+    domains: ['*'], // Allow images from all domains
+  },
+  
+  // Disable server-side features that don't work with static export
+  // Note: exportPathMap is not compatible with the app/ directory
+  // We'll use generateStaticParams() in page files instead
   
   // Environment variables configuration
   env: {

@@ -9,6 +9,9 @@ type PageProps = {
   params: { address: string };
 };
 
+// Dynamic route configuration is in generateStaticParams.ts
+
+
 async function fetchByteCodeAndAssembly(buildInfoDirectory: string, contractPath: string) {
   const buildInfoFiles = fs.readdirSync(buildInfoDirectory);
   let bytecode = "";

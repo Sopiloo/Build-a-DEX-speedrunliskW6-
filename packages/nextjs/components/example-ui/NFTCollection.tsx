@@ -10,6 +10,14 @@ export const NFTCollection = () => {
   const { address: connectedAddress } = useAccount();
   const [mintToAddress, setMintToAddress] = useState("");
 
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only update if it's a valid address or empty
+    if (value === "" || value.startsWith("0x")) {
+      setMintToAddress(value);
+    }
+  };
+
   const { data: nftName } = useScaffoldContractRead({
     contractName: "MyNFT",
     functionName: "name",
@@ -28,17 +36,17 @@ export const NFTCollection = () => {
   const { data: userBalance } = useScaffoldContractRead({
     contractName: "MyNFT",
     functionName: "balanceOf",
-    args: [connectedAddress],
+    args: [connectedAddress as `0x${string}`],
   });
 
   const { writeAsync: writeMyNFTAsync } = useScaffoldContractWrite({
     contractName: "MyNFT",
     functionName: "mint",
-    args: [mintToAddress || connectedAddress],
+    args: [(mintToAddress || connectedAddress) as `0x${string}`],
   });
 
   const handleMint = async () => {
-    const targetAddress = mintToAddress || connectedAddress;
+    const targetAddress = (mintToAddress || connectedAddress) as `0x${string}`;
 
     if (!targetAddress) {
       notification.error("Please connect wallet or specify address");
@@ -96,7 +104,7 @@ export const NFTCollection = () => {
             placeholder="0x... or leave empty"
             className="input input-bordered w-full max-w-xs"
             value={mintToAddress}
-            onChange={e => setMintToAddress(e.target.value)}
+            onChange={handleAddressChange}
           />
         </div>
 

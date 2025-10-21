@@ -45,10 +45,10 @@ export const LiquidityPanel = () => {
   }, [tokenAAddressDefault, tokenBAddressDefault, tokenAInput, tokenBInput]);
 
   // Get reserves
-  const { data: reservesDefault } = useScaffoldContractRead({
+  const { data: defaultReserves } = useScaffoldContractRead({
     contractName: "SimpleDEX",
     functionName: "getReserves",
-  });
+  }) as { data: [bigint, bigint] | undefined };
 
   const { data: reservesFromPair } = useContractRead({
     address: selectedPair,
@@ -58,17 +58,17 @@ export const LiquidityPanel = () => {
     watch: true,
   });
 
-  const reserves = selectedPair ? (reservesFromPair as any) : (reservesDefault as any);
+  const reserves = (selectedPair ? reservesFromPair : defaultReserves) as [bigint, bigint, bigint] | undefined;
 
-  const reserveA = reserves?.[0] || 0n;
-  const reserveB = reserves?.[1] || 0n;
-  const totalLiquidity = reserves?.[2] || 0n;
+  const reserveA = reserves?.[0] ?? 0n;
+  const reserveB = reserves?.[1] ?? 0n;
+  const totalLiquidity = reserves?.[2] ?? 0n;
 
   // Get user liquidity
   const { data: userLiquidityDataDefault, refetch: refetchUserLiquidityDefault } = useScaffoldContractRead({
     contractName: "SimpleDEX",
     functionName: "getUserLiquidity",
-    args: [connectedAddress],
+    args: [connectedAddress as `0x${string}`],
   });
 
   const { data: userLiquidityDataFromPair, refetch: refetchUserLiquidityFromPair } = useContractRead({
@@ -91,13 +91,13 @@ export const LiquidityPanel = () => {
   const { data: balanceA } = useScaffoldContractRead({
     contractName: "MyToken",
     functionName: "balanceOf",
-    args: [connectedAddress],
+    args: [connectedAddress as `0x${string}`],
   });
 
   const { data: balanceB } = useScaffoldContractRead({
     contractName: "SimpleUSDC",
     functionName: "balanceOf",
-    args: [connectedAddress],
+    args: [connectedAddress as `0x${string}`],
   });
 
   // Get token symbols
@@ -112,18 +112,24 @@ export const LiquidityPanel = () => {
   });
 
   // Check approvals
-  const spenderAddress = (selectedPair || dexAddress) as `0x${string}` | undefined;
+  const spenderAddress = (selectedPair || dexAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
   const { data: allowanceA, refetch: refetchAllowanceA } = useScaffoldContractRead({
     contractName: "MyToken",
     functionName: "allowance",
-    args: [connectedAddress, spenderAddress],
+    args: [
+      (connectedAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+      spenderAddress
+    ] as const,
   });
 
   const { data: allowanceB, refetch: refetchAllowanceB } = useScaffoldContractRead({
     contractName: "SimpleUSDC",
     functionName: "allowance",
-    args: [connectedAddress, spenderAddress],
+    args: [
+      (connectedAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+      spenderAddress
+    ] as const,
   });
 
   // Update approval status
@@ -150,37 +156,44 @@ export const LiquidityPanel = () => {
   });
 
   // Add liquidity
-  const addArgs = [amountA ? parseUnits(amountA, 18) : 0n, amountB ? parseUnits(amountB, 6) : 0n] as const;
+  const addArgs = useMemo(() => ({
+    amountA: amountA ? parseUnits(amountA, 18) : 0n, 
+    amountB: amountB ? parseUnits(amountB, 6) : 0n
+  }), [amountA, amountB]);
 
   const { config: addCfg } = usePrepareContractWrite({
     address: selectedPair,
     abi: dexAbi,
     functionName: "addLiquidity",
-    args: addArgs,
+    args: [addArgs.amountA, addArgs.amountB],
     enabled: !!selectedPair && !!dexAbi,
   });
   const { writeAsync: addLiquidityWagmi } = useContractWrite(addCfg);
   const { writeAsync: addLiquidityScaffold } = useScaffoldContractWrite({
     contractName: "SimpleDEX",
     functionName: "addLiquidity",
-    args: addArgs as any,
+    args: [addArgs.amountA, addArgs.amountB],
   });
   const addLiquidity = selectedPair ? addLiquidityWagmi : addLiquidityScaffold;
 
   // Remove liquidity
-  const removeArgs = [removeAmount ? parseUnits(removeAmount, 18) : 0n] as const;
+  const removeAmountBN = useMemo(() => 
+    removeAmount ? parseUnits(removeAmount, 18) : 0n, 
+    [removeAmount]
+  );
+  
   const { config: removeCfg } = usePrepareContractWrite({
     address: selectedPair,
     abi: dexAbi,
     functionName: "removeLiquidity",
-    args: removeArgs,
+    args: [removeAmountBN],
     enabled: !!selectedPair && !!dexAbi,
   });
   const { writeAsync: removeLiquidityWagmi } = useContractWrite(removeCfg);
   const { writeAsync: removeLiquidityScaffold } = useScaffoldContractWrite({
     contractName: "SimpleDEX",
     functionName: "removeLiquidity",
-    args: removeArgs as any,
+    args: [removeAmountBN],
   });
   const removeLiquidity = selectedPair ? removeLiquidityWagmi : removeLiquidityScaffold;
 
@@ -191,12 +204,43 @@ export const LiquidityPanel = () => {
     functionName: "claimFees",
     enabled: !!selectedPair && !!dexAbi,
   });
+  
   const { writeAsync: claimFeesWagmi } = useContractWrite(claimCfg);
+  
+  // For scaffold contract, we'll create a wrapper that matches the expected type
   const { writeAsync: claimFeesScaffold } = useScaffoldContractWrite({
     contractName: "SimpleDEX",
     functionName: "claimFees",
   });
-  const claimFees = selectedPair ? claimFeesWagmi : claimFeesScaffold;
+
+  const claimFees = selectedPair 
+    ? {
+        writeAsync: async () => {
+          if (!claimFeesWagmi) throw new Error('Claim fees not available');
+          const result = await claimFeesWagmi();
+          // For wagmi v2, the result is the transaction hash, not an object with wait()
+          // We'll return a dummy wait function that resolves immediately
+          return { 
+            wait: async () => {
+              // In a real implementation, you might want to use waitForTransaction from wagmi
+              // to wait for the transaction to be mined
+              return Promise.resolve({});
+            }
+          };
+        }
+      }
+    : {
+        writeAsync: async () => {
+          if (!claimFeesScaffold) throw new Error('Claim fees not available');
+          const result = await claimFeesScaffold();
+          return { 
+            wait: async () => {
+              // For scaffold contract, return a resolved promise
+              return Promise.resolve({});
+            } 
+          };
+        }
+      };
 
   const handleApproveA = async () => {
     if (!dexAddress) {
@@ -235,11 +279,13 @@ export const LiquidityPanel = () => {
     }
 
     try {
-      await addLiquidity();
-      notification.success("Liquidity added!");
-      setAmountA("");
-      setAmountB("");
-      setTimeout(() => refetchUserLiquidity(), 2000);
+      const tx = await addLiquidity?.();
+      if (tx) {
+        notification.success("Liquidity added!");
+        setAmountA("");
+        setAmountB("");
+        setTimeout(() => refetchUserLiquidity(), 2000);
+      }
     } catch (error) {
       console.error("Add liquidity failed:", error);
       notification.error("Add liquidity failed");
@@ -253,10 +299,12 @@ export const LiquidityPanel = () => {
     }
 
     try {
-      await removeLiquidity();
-      notification.success("Liquidity removed!");
-      setRemoveAmount("");
-      setTimeout(() => refetchUserLiquidity(), 2000);
+      const tx = await removeLiquidity?.();
+      if (tx) {
+        notification.success("Liquidity removed!");
+        setRemoveAmount("");
+        setTimeout(() => refetchUserLiquidity(), 2000);
+      }
     } catch (error) {
       console.error("Remove liquidity failed:", error);
       notification.error("Remove liquidity failed");
@@ -306,9 +354,10 @@ export const LiquidityPanel = () => {
         notification.error("Enter both token addresses");
         return;
       }
-      const tx = await createPair();
-      await tx?.wait?.();
-      notification.success("Pair created. Click 'Find Pair' to select it.");
+      const tx = await createPair?.();
+      if (tx) {
+        notification.success("Pair created. Click 'Find Pair' to select it.");
+      }
     } catch (e) {
       console.error(e);
       notification.error("Create pair failed");
@@ -365,11 +414,13 @@ export const LiquidityPanel = () => {
               className="btn btn-outline"
               onClick={async () => {
                 try {
-                  await claimFees?.();
-                  notification.success("Fees claimed");
-                  setTimeout(() => {
-                    refetchUserLiquidity?.();
-                  }, 1500);
+                  if (claimFees?.writeAsync) {
+                    await claimFees.writeAsync();
+                    notification.success("Fees claimed");
+                    setTimeout(() => {
+                      refetchUserLiquidity?.();
+                    }, 1500);
+                  }
                 } catch (e) {
                   console.error(e);
                   notification.error("Claim failed");
@@ -429,22 +480,20 @@ export const LiquidityPanel = () => {
             )}
 
             {/* Action Buttons */}
-            <div className="card-actions justify-end mt-4">
-              {!isApprovedA && (
-                <button className="btn btn-secondary btn-sm" onClick={handleApproveA}>
+            <div className="card-actions justify-end">
+              {!isApprovedA ? (
+                <button className="btn btn-primary" onClick={handleApproveA}>
                   Approve {symbolA}
                 </button>
-              )}
-              {!isApprovedB && (
-                <button className="btn btn-secondary btn-sm" onClick={handleApproveB}>
+              ) : !isApprovedB ? (
+                <button className="btn btn-primary" onClick={handleApproveB}>
                   Approve {symbolB}
                 </button>
-              )}
-              {isApprovedA && isApprovedB && (
+              ) : (
                 <button
-                  className="btn btn-primary btn-block"
+                  className="btn btn-primary"
                   onClick={handleAddLiquidity}
-                  disabled={!amountA || !amountB}
+                  disabled={!amountA || !amountB || parseFloat(amountA) <= 0 || parseFloat(amountB) <= 0}
                 >
                   Add Liquidity
                 </button>

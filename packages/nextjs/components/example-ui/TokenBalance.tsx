@@ -10,7 +10,7 @@ export const TokenBalance = () => {
   const { data: tokenBalance } = useScaffoldContractRead({
     contractName: "MyToken",
     functionName: "balanceOf",
-    args: connectedAddress ? [connectedAddress as `0x${string}`] as const : undefined,
+    args: connectedAddress ? [connectedAddress as `0x${string}`] : [undefined],
     enabled: !!connectedAddress,
   });
 

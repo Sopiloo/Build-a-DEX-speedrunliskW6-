@@ -28,11 +28,13 @@
     "next": "^14.0.4",
     "next-themes": "^0.2.1",
     "nprogress": "^0.2.0",
+    "pino-pretty": "^13.1.2",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
     "react-copy-to-clipboard": "^5.1.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.0",
+    "sharp": "^0.34.4",
     "thirdweb": "^5.109.1",
     "use-debounce": "^8.0.4",
     "usehooks-ts": "^2.13.0",
@@ -41,7 +43,22 @@
     "zustand": "^4.1.2"
   },
   "resolutions": {
+    "bigint-buffer": "^2.0.3",
+    "ethereumjs-util": "^7.1.5",
+    "ethereum-cryptography": "^1.2.6",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "overrides": {
     "bigint-buffer": "^2.0.3"
+  },
+  "peerDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",

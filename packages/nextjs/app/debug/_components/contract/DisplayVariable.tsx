@@ -25,22 +25,16 @@ export const DisplayVariable = ({
   abi,
   inheritedFrom,
 }: DisplayVariableProps) => {
-  const redstoneOnly: string[] = [
+  const redstoneOnly: boolean = [
     "extractTimestampsAndAssertAllAreEqual",
   ].includes(abiFunction.name);
 
-  const {
-    data: result,
-    isFetching,
-    refetch,
-  } = useContractRead({
+  const { data: result, refetch, isLoading } = useContractRead({
     address: contractAddress,
-    functionName: abiFunction.name,
     abi: abi,
+    functionName: abiFunction.name,
+    args: abiFunction.inputs.map(() => undefined),
     enabled: !redstoneOnly,
-    onError: error => {
-      notification.error(error.message);
-    },
   });
 
   const { showAnimation } = useAnimationConfig(result);
@@ -49,14 +43,14 @@ export const DisplayVariable = ({
     if (!redstoneOnly) {
       refetch();
     }
-  }, [refetch, refreshDisplayVariables]);
+  }, [redstoneOnly, refetch, refreshDisplayVariables]);
 
   return (
     <div className="space-y-1 pb-2">
       <div className="flex items-center">
         <h3 className="font-medium text-lg mb-0 break-all">{abiFunction.name}</h3>
         <button className="btn btn-ghost btn-xs" disabled={redstoneOnly} onClick={async () => await refetch()}>
-          {isFetching ? (
+          {isLoading ? (
             <span className="loading loading-spinner loading-xs"></span>
           ) : (
             <ArrowPathIcon className="h-3 w-3 cursor-pointer" aria-hidden="true" />
