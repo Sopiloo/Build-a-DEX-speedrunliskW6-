@@ -15,8 +15,11 @@ const BlockExplorer: NextPage = () => {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    if (targetNetwork.id !== hardhat.id) {
+    // Allow both localhost (hardhat) and Lisk Sepolia networks
+    if (targetNetwork.id !== hardhat.id && targetNetwork.id !== 4202) {
       setIsLocalNetwork(false);
+    } else {
+      setIsLocalNetwork(true);
     }
   }, [targetNetwork.id]);
 
@@ -31,28 +34,25 @@ const BlockExplorer: NextPage = () => {
       notification.error(
         <>
           <p className="font-bold mt-0 mb-1">
-            <code className="italic bg-base-300 text-base font-bold"> targeNetwork </code> is not localhost
+            <code className="italic bg-base-300 text-base font-bold">targetNetwork</code> is not supported for this explorer
           </p>
           <p className="m-0">
-            - You are on <code className="italic bg-base-300 text-base font-bold">{targetNetwork.name}</code> .This
-            block explorer is only for <code className="italic bg-base-300 text-base font-bold">localhost</code>.
+            - You are on <code className="italic bg-base-300 text-base font-bold">{targetNetwork.name}</code>.
+            This block explorer only works with <code className="italic bg-base-300 text-base font-bold">localhost</code> or <code className="italic bg-base-300 text-base font-bold">Lisk Sepolia Testnet</code>.
           </p>
-          <p className="mt-1 break-normal">
-            - You can use{" "}
-            <a className="text-accent" href={targetNetwork.blockExplorers?.default.url}>
-              {targetNetwork.blockExplorers?.default.name}
-            </a>{" "}
-            instead
-          </p>
+          {targetNetwork.blockExplorers?.default?.url && (
+            <p className="mt-1 break-normal">
+              - You can use{" "}
+              <a className="text-accent" href={targetNetwork.blockExplorers.default.url} target="_blank" rel="noopener noreferrer">
+                {targetNetwork.blockExplorers.default.name || 'block explorer'}
+              </a>{" "}
+              instead
+            </p>
+          )}
         </>,
       );
     }
-  }, [
-    isLocalNetwork,
-    targetNetwork.blockExplorers?.default.name,
-    targetNetwork.blockExplorers?.default.url,
-    targetNetwork.name,
-  ]);
+  }, [isLocalNetwork, targetNetwork]);
 
   useEffect(() => {
     if (hasError) {

@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+dist
+build
+coverage
+*.d.ts
+*.generated.ts
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+packages/nextjs/.next/
+packages/nextjs/out/
+packages/hardhat/artifacts/
+packages/hardhat/cache/

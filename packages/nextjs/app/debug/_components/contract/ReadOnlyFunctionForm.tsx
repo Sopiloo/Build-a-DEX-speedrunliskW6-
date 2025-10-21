@@ -31,6 +31,8 @@ export const ReadOnlyFunctionForm = ({
   const [form, setForm] = useState<Record<string, any>>(() => getInitialFormState(abiFunction));
   const [result, setResult] = useState<unknown>();
 
+  const redstoneOnly = false;
+
   const { isFetching, refetch } = useContractRead({
     address: contractAddress,
     functionName: abiFunction.name,
@@ -66,7 +68,15 @@ export const ReadOnlyFunctionForm = ({
         {abiFunction.name}
         <InheritanceTooltip inheritedFrom={inheritedFrom} />
       </p>
-      {inputElements}
+      {!redstoneOnly && inputElements}
+      {redstoneOnly && (
+        <div className="alert alert-info text-xs">
+          <span>
+            This function requires a RedStone payload and cannot be called from Debug. Use the Oracle page
+            at <code className="bg-base-100 p-0.5 rounded">/oracle</code> to read it on-chain.
+          </span>
+        </div>
+      )}
       <div className="flex justify-between gap-2 flex-wrap">
         <div className="flex-grow w-4/5">
           {result !== null && result !== undefined && (
@@ -82,7 +92,7 @@ export const ReadOnlyFunctionForm = ({
             const { data } = await refetch();
             setResult(data);
           }}
-          disabled={isFetching}
+          disabled={isFetching || redstoneOnly}
         >
           {isFetching && <span className="loading loading-spinner loading-xs"></span>}
           Read 📡

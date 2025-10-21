@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 import { WagmiConfig } from "wagmi";
 import { Footer } from "~~/components/Footer";
@@ -39,22 +40,33 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
 export const ScaffoldEthAppWithProviders = ({ children }: { children: React.ReactNode }) => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
+  const pathname = usePathname();
+  const disableRainbowKit = pathname === "/gasless";
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Render providers only after mount to avoid hydration mismatches (e.g., custom avatar image)
+  if (!mounted) {
+    return (
+      <>
+        <ProgressBar />
+      </>
+    );
+  }
+
   return (
     <WagmiConfig config={wagmiConfig}>
       <ProgressBar />
-      <RainbowKitProvider
-        chains={appChains.chains}
-        avatar={BlockieAvatar}
-        theme={mounted ? (isDarkMode ? darkTheme() : lightTheme()) : lightTheme()}
-      >
+      {disableRainbowKit ? (
         <ScaffoldEthApp>{children}</ScaffoldEthApp>
-      </RainbowKitProvider>
+      ) : (
+        <RainbowKitProvider chains={appChains.chains} avatar={BlockieAvatar} theme={isDarkMode ? darkTheme() : lightTheme()}>
+          <ScaffoldEthApp>{children}</ScaffoldEthApp>
+        </RainbowKitProvider>
+      )}
     </WagmiConfig>
   );
 };

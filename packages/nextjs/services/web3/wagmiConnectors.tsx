@@ -5,11 +5,11 @@ import {
   ledgerWallet,
   metaMaskWallet,
   rainbowWallet,
-  safeWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import * as chains from "viem/chains";
 import { configureChains } from "wagmi";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
 import scaffoldConfig from "~~/scaffold.config";
@@ -30,6 +30,12 @@ const enabledChains = targetNetworks.find(network => network.id === 1)
 export const appChains = configureChains(
   enabledChains,
   [
+    // Prefer a dedicated RPC for Lisk Sepolia to avoid public rate limits (set NEXT_PUBLIC_LISK_RPC_URL)
+    jsonRpcProvider({
+      rpc: chain => (chain.id === 4202 && process.env.NEXT_PUBLIC_LISK_RPC_URL
+        ? { http: process.env.NEXT_PUBLIC_LISK_RPC_URL as string }
+        : null),
+    }),
     alchemyProvider({
       apiKey: scaffoldConfig.alchemyApiKey,
     }),
@@ -48,7 +54,7 @@ export const appChains = configureChains(
 );
 
 const walletsOptions = { chains: appChains.chains, projectId: scaffoldConfig.walletConnectProjectId };
-const wallets = [
+let wallets = [
   metaMaskWallet({ ...walletsOptions, shimDisconnect: true }),
   walletConnectWallet(walletsOptions),
   ledgerWallet(walletsOptions),
@@ -62,8 +68,13 @@ const wallets = [
         }),
       ]
     : []),
-  safeWallet({ ...walletsOptions }),
 ];
+
+if (typeof window !== "undefined") {
+  // Require safeWallet only on the client to avoid SSR importing dependencies like isomorphic-ws
+  const { safeWallet } = require("@rainbow-me/rainbowkit/wallets");
+  wallets = [...wallets, safeWallet({ ...walletsOptions })];
+}
 
 /**
  * wagmi connectors for the wagmi context

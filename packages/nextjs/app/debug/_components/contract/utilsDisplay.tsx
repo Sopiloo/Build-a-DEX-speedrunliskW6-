@@ -1,17 +1,9 @@
 import { ReactElement } from "react";
-import { TransactionBase, TransactionReceipt, formatEther, isAddress } from "viem";
+import { formatEther, isAddress } from "ethers";
 import { Address } from "~~/components/scaffold-eth";
 import { replacer } from "~~/utils/scaffold-eth/common";
 
-type DisplayContent =
-  | string
-  | number
-  | bigint
-  | Record<string, any>
-  | TransactionBase
-  | TransactionReceipt
-  | undefined
-  | unknown;
+type DisplayContent = string | number | bigint | Record<string, any> | undefined | unknown;
 
 export const displayTxResult = (
   displayContent: DisplayContent | DisplayContent[],
