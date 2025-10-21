@@ -1,3 +1,18 @@
 {
-  "installCommand": "yarn install"
+  "installCommand": "yarn install --ignore-optional",
+  "buildCommand": "yarn build:vercel",
+  "devCommand": "yarn dev",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "regions": ["cdg1"],
+  "nodeVersion": "18.x",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": ".next"
+      }
+    }
+  ]
 }
