@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd packages/nextjs && yarn build:vercel",
+  "outputDirectory": "packages/nextjs/.next",
+  "framework": "nextjs"
+}

@@ -7,7 +7,7 @@ export const liskSepolia = /*#__PURE__*/ defineChain({
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: {
-      http: ["https://rpc.sepolia-api.lisk.com"],
+      http: [process.env.NEXT_PUBLIC_LISK_RPC_URL || "https://rpc.sepolia-api.lisk.com"],
     },
     public: {
       http: ["https://rpc.sepolia-api.lisk.com"],

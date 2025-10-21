@@ -6,6 +6,7 @@
     "dev": "next dev",
     "start": "next dev",
     "build": "next build",
+    "build:vercel": "HUSKY=0 tsc --noEmit --incremental --project tsconfig.vercel.json && next build",
     "serve": "next start",
     "lint": "next lint",
     "format": "prettier --write . '!(node_modules|.next|contracts)/**/*'",
