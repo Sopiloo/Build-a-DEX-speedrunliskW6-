@@ -1,3 +1,42 @@
+# Week 6 - The last SpeedrunLisk challenge !
+
+## ✅ Frontend URL: Your deployed Vercel URL with /dex route
+-	https://build-a-dex-speedrunlisk-w6-nextjs-9im5t4lxt-sopiloos-projects.vercel.app/dex/
+## ✅ Contract Addresses:
+-	MyToken: 0x9551eDef00De5f2b117B202ba3c78720D348Cfb6
+-	SimpleUSDC: 0xA578878755522EF390c479699581D026fd875f47
+-	SimpleDEX: 0x38922cd56f85100614e414C56E97Dec59a323efa
+
+## ✅ Verified Contracts: Links to verified contracts on Lisk Sepolia Blockscout
+-	MyToken : https://sepolia-blockscout.lisk.com/address/0x9551eDef00De5f2b117B202ba3c78720D348Cfb6
+-	SimpleUSDC : https://sepolia-blockscout.lisk.com/address/0xA578878755522EF390c479699581D026fd875f47?tab=contract
+-	SimpleDEX : https://sepolia-blockscout.lisk.com/address/0x38922cd56f85100614e414C56E97Dec59a323efa?tab=contract
+
+## ✅ GitHub Repository: Link to your code repository
+-	https://github.com/Sopiloo/Build-a-DEX-speedrunliskW6-/blob/main/README.md
+
+## ✅ Transaction Links:
+•	Add liquidity transaction
+-	https://sepolia-blockscout.lisk.com/tx/0xdb2d5004f882b962b7a2dce383b64a297e88cd93c40f8786ccdee4314fa5aa12 
+•	Swap transaction
+-	https://sepolia-blockscout.lisk.com/tx/0x3cdca227ba7e6e4b0af6f5370d274e590462035cead255ae70b0fb7affea6deb
+•	Remove liquidity transaction
+-	https://sepolia-blockscout.lisk.com/tx/0x526af8d262974ca9af3952c024ae556cc6dbcd36b8b21050044bafe0c897d6e0 
+
+## Bonus Points:
+•	Share a screenshot of your DEX with pool stats!
+•	Tweet about building a DEX on Lisk with #LiskSEA
+•	Add liquidity to help others test swaps!
+<img width="786" height="405" alt="image" src="https://github.com/user-attachments/assets/6c66f813-2442-4bed-8fe0-1b501c297db6" />
+
+
+
+
+
+
+
+
+
 <div align="left">
   <a href="https://lisk.com"><img alt="Lisk" src="./packages/nextjs/public/readme-banner.png" width="100%"></a>
 </div>
