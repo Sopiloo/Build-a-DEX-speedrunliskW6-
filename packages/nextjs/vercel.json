@@ -10,15 +10,12 @@
     }
   ],
   "build": {
-    "env": {
-      "NODE_VERSION": "18.x"
-    }
+    "env": {}
   },
   "installCommand": "yarn install --ignore-optional --frozen-lockfile",
   "buildCommand": "yarn build:vercel",
   "devCommand": "yarn dev",
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "regions": ["cdg1"],
-  "nodeVersion": "18.x"
+  "regions": ["cdg1"]
 }
