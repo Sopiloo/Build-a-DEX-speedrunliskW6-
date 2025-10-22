@@ -1,4 +1,5 @@
 // @ts-check
+const webpack = require('webpack');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,13 +11,8 @@ const nextConfig = {
   
   // Image optimization configuration
   images: {
-    // Enable image optimization
     domains: ['*'], // Allow images from all domains
-    unoptimized: true, // Disable default image optimization
   },
-  
-  // Disable server-side features that don't work with static export
-  output: 'export',
   
   // Environment variables configuration
   env: {
@@ -35,7 +31,7 @@ const nextConfig = {
   
   // Webpack configuration
   webpack: (config, { isServer, webpack }) => {
-    // Fixes npm packages that depend on `node:` protocol (not available in browser)
+    // Add fallback for Node.js core modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -43,78 +39,7 @@ const nextConfig = {
       tls: false,
       dns: false,
       child_process: false,
-    };
-
-    // Add polyfills for Node.js core modules
-    if (!isServer) {
-      // Add polyfills
-      const fallback = {
-        ...config.resolve.fallback,
-        buffer: require.resolve('buffer/'),
-        crypto: require.resolve('crypto-browserify'),
-        stream: require.resolve('stream-browserify'),
-        util: require.resolve('util/'),
-        assert: require.resolve('assert/'),
-        http: require.resolve('stream-http'),
-        https: require.resolve('https-browserify'),
-        os: require.resolve('os-browserify/browser'),
-        url: require.resolve('url/'),
-        path: require.resolve('path-browserify'),
-        process: require.resolve('process/browser'),
-      };
-
-      config.resolve.fallback = fallback;
-
-      // Add plugin to provide Buffer globally
-      config.plugins = (config.plugins || []).concat([
-        new (require('webpack').ProvidePlugin)({
-          Buffer: ['buffer', 'Buffer'],
-          process: 'process/browser',
-        }),
-      ]);
-
-      // Fix for bigint-buffer
-      config.module.rules.push({
-        test: /\.m?js$/,
-        resolve: {
-          fullySpecified: false, // disable the behavior
-        },
-      });
-
-      // Exclude node_modules from being processed by babel-loader
-      config.module.rules.push({
-        test: /\.m?js$/,
-        exclude: /node_modules\/(?!@walletconnect|@web3modal|@web3-react|@web3modal|@walletconnect\/.*|@walletconnect\/.*\/.*|@walletconnect\/.*\/.*\/.*|@walletconnect\/.*\/.*\/.*\/.*)/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env'],
-            plugins: ['@babel/plugin-proposal-class-properties', '@babel/plugin-transform-runtime'],
-          },
-        },
-      });
-    }
-
-    // Add a rule to handle .node files
-    config.module.rules.push({
-      test: /\.node$/,
-      use: 'node-loader',
-    });
-
-    // Force pure JavaScript implementation of bigint-buffer
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'bigint-buffer': 'bigint-buffer/umd.js',
-      'web3-eth-abi': 'web3-eth-abi/lib/index.js',
-      // Add other problematic native modules here
-      'secp256k1': 'secp256k1/elliptic.js',
-      'keccak': 'keccak/js',
-    };
-
-    // Add fallback for Node.js core modules
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
+      // Polyfills for Node.js core modules
       path: require.resolve('path-browserify'),
       crypto: require.resolve('crypto-browserify'),
       stream: require.resolve('stream-browserify'),
@@ -125,15 +50,39 @@ const nextConfig = {
       util: require.resolve('util/'),
       assert: require.resolve('assert/'),
       url: require.resolve('url/'),
+      process: require.resolve('process/browser'),
     };
 
-    // Provide global Buffer
+    // Add polyfills
     config.plugins.push(
       new webpack.ProvidePlugin({
-        Buffer: ['buffer', 'Buffer'],
         process: 'process/browser',
+        Buffer: ['buffer', 'Buffer'],
       })
     );
+
+    // Ignore specific warnings
+    config.ignoreWarnings = [
+      { module: /node_modules[\\/]process[\\/]browser\.js/ },
+      { module: /node_modules[\\/]@babel[\\/]runtime/ },
+      { module: /node_modules[\\/]asynckit[\\/]/ },
+      { module: /node_modules[\\/]consola[\\/]/ },
+    ];
+
+    // Suppress specific warnings
+    config.stats = 'errors-only';
+    
+    // Fix for process/browser not found
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'process/browser': require.resolve('process/browser'),
+    };
+
+    // Add a rule to handle .node files
+    config.module.rules.push({
+      test: /\.node$/,
+      use: 'node-loader',
+    });
 
     return config;
   },
@@ -141,7 +90,16 @@ const nextConfig = {
   // Add experimental features
   experimental: {
     esmExternals: 'loose',
-    serverComponentsExternalPackages: ['@toruslabs/solana-embed', '@solana/web3.js', 'bufferutil', 'utf-8-validate'],
+    serverComponentsExternalPackages: [
+      '@toruslabs/solana-embed', 
+      '@solana/web3.js', 
+      'bufferutil', 
+      'utf-8-validate',
+      '@babel/runtime',
+      '@babel/runtime-corejs3',
+      'process/browser'
+    ],
+    fallbackNodePolyfills: false,
   },
   
   // Enable CORS for API routes
